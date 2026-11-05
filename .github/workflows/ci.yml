@@ -22,29 +22,31 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Lint (ruff)
+      - name: Lint (ruff, advisory)
+        continue-on-error: true
         run: |
           pip install ruff --quiet
           ruff check council/ frontend_api/ Expert1/ "Expert 2/" "Expert 3/" \
-            --ignore E501,E402,F401 --quiet || true
+            --ignore E501,E402,F401
 
-      - name: Run unit tests (no API key required)
+      - name: Compile check (all Python modules import-parse)
+        run: python -m compileall -q council frontend_api Expert1 "Expert 2" "Expert 3"
+
+      # Expert 1 unit tests. Six tests in test_unit_combined.py and the
+      # test_data_validator.py import are known to fail against the current
+      # inspect-ai API; they are reported here (non-blocking) instead of being
+      # silently skipped, until they are fixed.
+      - name: Expert 1 unit tests (no API key; known failures, non-blocking)
+        continue-on-error: true
         env:
           MOCK_MODE: "1"
           ANTHROPIC_API_KEY: "sk-ant-mock-key-for-ci"
         run: |
-          pip install pytest --quiet
-          # Run fast unit tests only — skip integration tests that require live LLM
+          pip install pytest pytest-asyncio inspect-ai --quiet
           python -m pytest Expert1/tests/test_unit_combined.py \
                            Expert1/tests/test_data_validator.py \
                            Expert1/tests/test_utils.py \
-            -v --tb=short -x 2>/dev/null || \
-          python -m pytest Expert1/tests/ -v --tb=short -x \
-            --ignore=Expert1/tests/test_integration_advanced.py \
-            --ignore=Expert1/tests/test_integration_basic.py \
-            --ignore=Expert1/tests/test_integration_judge.py \
-            -k "not live and not integration" 2>/dev/null || \
-          echo "No unit tests found — skipping (integration tests require live API)"
+            -v --tb=short
 
   frontend-build:
     name: Frontend — install + build
@@ -65,7 +67,7 @@ jobs:
 
       - name: Type-check
         working-directory: real_frontend
-        run: npx tsc --noEmit || true
+        run: npx tsc --noEmit -p tsconfig.app.json
 
       - name: Build
         working-directory: real_frontend
