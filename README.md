@@ -1,18 +1,31 @@
 # UNICC AI Safety Council
 
-> **Multi-expert AI safety evaluation framework for UN and humanitarian deployment contexts.**  
-> Submit any AI system description or live URL → receive a structured **APPROVE / REVIEW / REJECT** verdict backed by traceable evidence from MITRE ATLAS, EU AI Act, GDPR, NIST AI RMF, and UN mission alignment principles.
+> **Multi-expert AI safety evaluation framework for UN and humanitarian deployment contexts.**
+> Submit an AI system description, GitHub repository or live URL → receive a structured **APPROVE / REVIEW / REJECT** verdict backed by traceable evidence from MITRE ATLAS, the EU AI Act, GDPR, NIST AI RMF and UN mission-alignment principles.
 
+![New Evaluation form and Expert Analysis view](docs/images/ui-new-evaluation-and-expert-analysis.png)
 
-# Repository Positioning
+## At a Glance
 
-This repository is maintained under **Zhiyuan Gao's GitHub** as the integrated project repository for the UNICC AI Safety Council capstone work. It presents the full system as a single maintained submission repository while preserving explicit team ownership in this README.
+| | |
+|---|---|
+| **Context** | NYU M.S. in Management and Analytics × UNICC (United Nations International Computing Centre) AI Safety capstone, Jan – Jun 2026 |
+| **Outcome** | Selected among the top three capstone projects |
+| **My role** | Project lead and system architect (Zhiyuan Gao) |
+| **Status** | Academic prototype. Not deployed or endorsed by UNICC or the United Nations |
+| **Stack** | Python · FastAPI · ChromaDB (RAG) · Anthropic Claude or local vLLM · React + Vite + TypeScript |
 
-## Team and Division of Labor
+## My Contribution
 
-- **Zhiyuan Gao** — Project 1 lead: system architecture, expert boundaries, orchestration logic, portability planning, auditability framing, Project 1 documentation, and repository integration/curation
-- **Junjie Yang** — security and adversarial evaluation implementation, live-attack workflow, Expert 1 pipeline, adapters, and attack-oriented benchmarking logic
-- **Ziyuan Cheng** — governance and UN-mission-fit evaluation implementation, regulatory and mission-fit retrieval workflows, and report-facing evaluation integration
+I led the project and owned the system design end to end:
+
+- **Architecture** — designed the three-expert council (security & adversarial robustness, governance & regulatory compliance, UN mission fit & human rights), the boundaries between experts, and the two-round flow: independent parallel assessment, then cross-critique.
+- **Data contracts** — defined the shared `AgentSubmission` → expert report → `CouncilReport` schemas so every expert produces comparable, citable output.
+- **Critique and arbitration rules** — specified the six directed peer critiques, the disagreement types, and the deterministic most-conservative-wins arbitration (no LLM in the final decision).
+- **Auditability** — set the audit requirements: every score traceable to an ATLAS technique, regulation article or UN principle, with full JSON / SQLite / JSONL records per evaluation.
+- **Integration** — wrote and maintained the integration specifications, built the early mock workflow used to agree on component handoffs, and integrated and curated this repository and its documentation.
+
+**Team credit.** Built with Junjie Yang (Expert 1 security and live-attack implementation) and Ziyuan Cheng (Expert 2 and 3 governance and mission-fit retrieval). Day-to-day team commits are in [JACKYYISHERE/UNICC-Project-2](https://github.com/JACKYYISHERE/UNICC-Project-2); this repository is the curated, integrated version.
 
 ---
 
@@ -37,6 +50,11 @@ The UNICC AI Safety Council runs **three specialised expert agents in parallel**
 ---
 
 ## System Architecture
+
+![System pipeline](docs/images/system-pipeline.png)
+
+<details>
+<summary>Text version (component and file names)</summary>
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -90,6 +108,8 @@ The UNICC AI Safety Council runs **three specialised expert agents in parallel**
 │  council/knowledge_index.jsonl        (per-run summary)              │
 └─────────────────────────────────────────────────────────────────────┘
 ```
+
+</details>
 
 ---
 
@@ -239,8 +259,8 @@ We additionally added a `/v1/judge/evaluate-transcript` endpoint that accepts mu
 
 ```bash
 # 1. Clone and install
-git clone https://github.com/JACKYYISHERE/UNICC-Project-2.git
-cd UNICC-Project-2
+git clone https://github.com/ZhiyuanGao224/UNICC-Project.git
+cd UNICC-Project
 pip install -r requirements.txt
 
 # 2. Set API key (skip if using vLLM)
@@ -452,7 +472,7 @@ Base URL: `http://localhost:8100`
 ## Repository Structure
 
 ```
-Capstone/
+UNICC-Project/
 ├── council/                        # Core orchestration
 │   ├── council_orchestrator.py     # CouncilOrchestrator.evaluate() + council_note builder
 │   ├── council_report.py           # CouncilReport dataclasses
@@ -499,13 +519,12 @@ Capstone/
 │       │   └── ReportFullPage.tsx  # Single-scroll full report
 │       ├── utils/
 │       │   ├── mapCouncilReport.ts # Backend JSON → frontend data model
-│       │   ├── reportToMarkdown.ts # Markdown export (with attack trail + fingerprint)
-│       │   └── reportToPDF.ts      # PDF export
+│       │   └── reportToMarkdown.ts # Markdown export (with attack trail + fingerprint)
 │       └── api/client.ts           # API calls + polling helpers
 │
-├── docs/
-│   ├── system-overview.en.md
-│   └── system-overview.zh-CN.md
+├── docs/images/                    # README diagram and screenshots
+│
+├── atlas-data/                     # Vendored MITRE ATLAS data (Apache-2.0, see atlas-data/LICENSE)
 │
 ├── start.sh                        # Backend entry point
 ├── dgx_setup.sh                    # DGX GPU server deployment
@@ -533,10 +552,22 @@ Capstone/
 
 Copy `Expert1/.env.example` → `Expert1/.env` and fill in your API key to get started.
 
----
+## Limitations
+
+- This is an academic prototype built for a capstone evaluation, not a production or UN-endorsed tool.
+- The two live-attack targets are local simulations with deliberately seeded vulnerabilities. They show that the pipeline can find known weaknesses; they are not evidence of detection rates on unseen systems.
+- Expert scores are produced by LLMs grounded in retrieved documents. This repository does not include a formal accuracy study against human expert ratings.
+- Running the full system needs an Anthropic API key or a local vLLM server; the RAG indexes are built on first start.
+
+## Third-Party Data and Code
+
+- **MITRE ATLAS** data in `atlas-data/` — © MITRE, Apache License 2.0 (`atlas-data/LICENSE`).
+- **AI Incident Database** reports (`Expert1/incidents.csv`, fetched by `Expert1/fetch_aiid_data.py`) — from [incidentdatabase.ai](https://incidentdatabase.ai).
+- **Benchmark targets** adapted from [SHIXUAN LIN's News Xenophobia Analysis Tool](https://github.com/shixuanlin1/unicc) (MIT) and the [Petri AI Safety Agent](https://github.com/hg3016-guo/unicc-ai-agent); VeriMedia examples reference [FlashCarrot/VeriMedia](https://github.com/FlashCarrot/VeriMedia).
+- Regulatory texts in `Expert 2/Ai_ACTS_ALL/` and `Expert 3/expert3_rag/` are working extracts of public documents (EU AI Act, GDPR, NIST AI RMF, OWASP LLM Top 10, UNESCO, UN guidance) used as the retrieval corpus.
 
 ---
 
 ## License
 
-MIT — see [UNICC-Project-2/LICENSE](UNICC-Project-2/LICENSE).
+MIT — see [LICENSE](LICENSE).
